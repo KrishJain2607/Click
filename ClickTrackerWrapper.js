@@ -47,10 +47,7 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
             }
             lastClickTime.current = timestamp;
 
-            // Load existing click data from localStorage
-            let clickData = loadClickData();
-
-            // Save new click data immediately
+            // 🔥 **Create new click data object immediately**
             const newClick = {
                 elementName,
                 currentURL,
@@ -61,20 +58,17 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
                 exitURL: null, // Will be updated later
             };
 
+            // 🔥 **Send latest click data immediately before storing**
+            sendDataToBackend([newClick]);
+
+            // Load existing click data from localStorage
+            let clickData = loadClickData();
             clickData.push(newClick);
             saveClickData(clickData);
-
-            // 🔥 **Send the latest click data immediately**
-            sendDataToBackend([newClick]);
 
             // Update previous URL on page navigation
             if (currentURL !== previousURL.current) {
                 previousURL.current = currentURL;
-            }
-
-            // Send stored data in case threshold is met
-            if (clickData.length >= 50) {
-                sendDataToBackend(clickData);
             }
         };
 

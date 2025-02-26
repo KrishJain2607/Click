@@ -4,7 +4,7 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
     const lastClickTime = useRef(null);
     const entryURL = useRef(window.location.href);
     const previousURL = useRef(null);
-    
+
     // Load stored click data from localStorage
     const loadClickData = () => {
         const storedData = localStorage.getItem("clickData");
@@ -16,18 +16,29 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
         localStorage.setItem("clickData", JSON.stringify(data));
     };
 
+    // Send data immediately to the backend
+    const sendDataToBackend = (clickData) => {
+        fetch(serverURL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(clickData),
+        }).then(() => {
+            localStorage.removeItem("clickData"); // Clear after sending
+        }).catch(err => console.error("Error sending click data:", err));
+    };
+
     useEffect(() => {
         const handleClick = (event) => {
             const target = event.target;
             if (!target) return;
-            
+
             const elementName = target.id || target.className || target.innerText || target.placeholder;
             if (!elementName) return; // Ignore clicks without a valid element name
-            
+
             const currentURL = window.location.href;
             const timestamp = new Date();
             const formattedTime = timestamp.toLocaleTimeString("en-GB"); // 00:00:00 format
-            
+
             let timeBetweenClicks = null;
             if (lastClickTime.current) {
                 const timeDiff = timestamp - lastClickTime.current;
@@ -39,8 +50,8 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
             // Load existing click data from localStorage
             let clickData = loadClickData();
 
-            // Save new click data
-            clickData.push({
+            // Save new click data immediately
+            const newClick = {
                 elementName,
                 currentURL,
                 previousURL: previousURL.current,
@@ -48,33 +59,26 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
                 timeBetweenClicks,
                 entryURL: entryURL.current,
                 exitURL: null, // Will be updated later
-            });
+            };
+
+            clickData.push(newClick);
+            saveClickData(clickData);
+
+            // 🔥 **Send the latest click data immediately**
+            sendDataToBackend([newClick]);
 
             // Update previous URL on page navigation
             if (currentURL !== previousURL.current) {
                 previousURL.current = currentURL;
             }
-            
-            // Save updated data back to localStorage
-            saveClickData(clickData);
 
-            // Send data if threshold is met
+            // Send stored data in case threshold is met
             if (clickData.length >= 50) {
                 sendDataToBackend(clickData);
             }
         };
-        
-        document.addEventListener("click", handleClick);
 
-        const sendDataToBackend = (clickData) => {
-            fetch(serverURL, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(clickData),
-            }).then(() => {
-                localStorage.removeItem("clickData"); // Clear localStorage after sending
-            }).catch(err => console.error("Error sending click data:", err));
-        };
+        document.addEventListener("click", handleClick);
 
         const interval = setInterval(() => {
             let clickData = loadClickData();

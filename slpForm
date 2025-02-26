@@ -1,5 +1,44 @@
 import React, { useState } from 'react';
 
+const containerStyle = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  justifyContent: 'space-between',
+  maxWidth: '600px',
+  margin: 'auto',
+};
+
+const fieldContainer = {
+  width: '48%',
+  marginBottom: '15px',
+};
+
+const inputStyle = {
+  width: '100%',
+  padding: '8px',
+  borderRadius: '4px',
+  border: '1px solid #ccc',
+};
+
+const labelStyle = {
+  display: 'block',
+  marginBottom: '5px',
+  fontWeight: 'bold',
+};
+
+const buttonStyle = {
+  width: '100%',
+  padding: '10px',
+  borderRadius: '4px',
+  border: 'none',
+  backgroundColor: '#4CAF50',
+  color: 'white',
+  fontWeight: 'bold',
+  cursor: 'pointer',
+  marginTop: '20px',
+};
+
+
 const RequestForm = () => {
   const [formData, setFormData] = useState({
     systemName: '',

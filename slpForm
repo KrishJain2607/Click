@@ -38,8 +38,7 @@ const buttonStyle = {
   marginTop: '20px',
 };
 
-
-const RequestForm = () => {
+const SlpForm = () => {
   const [formData, setFormData] = useState({
     systemName: '',
     reqUserName: '',
@@ -60,88 +59,92 @@ const RequestForm = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log('Form Submitted:', formData);
-    alert('Form submitted successfully!');
-    setFormData({
-      systemName: '',
-      reqUserName: '',
-      replyUserName: '',
-      replyPassword: '',
-      deliveryMode: '',
-      paamIdentifierType: '',
-    });
   };
 
   return (
-    <div>
-      <h2>Request Form</h2>
-      <form onSubmit={handleSubmit}>
-        <label>System Name:</label>
-        <input
-          type="text"
-          name="systemName"
-          value={formData.systemName}
-          onChange={handleChange}
-          required
-        />
+    <form onSubmit={handleSubmit} style={{ maxWidth: '650px', margin: 'auto' }}>
+      <div style={containerStyle}>
+        <div style={fieldContainer}>
+          <label style={labelStyle}>System Name:</label>
+          <input
+            type="text"
+            name="systemName"
+            value={formData.systemName}
+            onChange={handleChange}
+            style={inputStyle}
+          />
+        </div>
 
-        <label>Req_User_Name:</label>
-        <input
-          type="text"
-          name="reqUserName"
-          value={formData.reqUserName}
-          onChange={handleChange}
-          required
-        />
+        <div style={fieldContainer}>
+          <label style={labelStyle}>Req_User_Name:</label>
+          <input
+            type="text"
+            name="reqUserName"
+            value={formData.reqUserName}
+            onChange={handleChange}
+            style={inputStyle}
+          />
+        </div>
 
-        <label>Reply User Name:</label>
-        <input
-          type="text"
-          name="replyUserName"
-          value={formData.replyUserName}
-          onChange={handleChange}
-          required
-        />
+        <div style={fieldContainer}>
+          <label style={labelStyle}>Reply User Name:</label>
+          <input
+            type="text"
+            name="replyUserName"
+            value={formData.replyUserName}
+            onChange={handleChange}
+            style={inputStyle}
+          />
+        </div>
 
-        <label>Reply Password:</label>
-        <input
-          type="password"
-          name="replyPassword"
-          value={formData.replyPassword}
-          onChange={handleChange}
-          required
-        />
+        <div style={fieldContainer}>
+          <label style={labelStyle}>Reply Password:</label>
+          <input
+            type="password"
+            name="replyPassword"
+            value={formData.replyPassword}
+            onChange={handleChange}
+            style={inputStyle}
+          />
+        </div>
 
-        <label>Delivery Mode:</label>
-        <select
-          name="deliveryMode"
-          value={formData.deliveryMode}
-          onChange={handleChange}
-          required
-        >
-          <option value="">-- Select Delivery Mode --</option>
-          <option value="SYNC">SYNC</option>
-          <option value="ASYNC">ASYNC</option>
-        </select>
+        <div style={fieldContainer}>
+          <label style={labelStyle}>Delivery Mode:</label>
+          <select
+            name="deliveryMode"
+            value={formData.deliveryMode}
+            onChange={handleChange}
+            style={inputStyle}
+          >
+            <option value="">Select Mode</option>
+            <option value="SYNC">SYNC</option>
+            <option value="ASYNC">ASYNC</option>
+          </select>
+        </div>
 
-        <label>PAAM Identifier Type (1-9):</label>
-        <select
-          name="paamIdentifierType"
-          value={formData.paamIdentifierType}
-          onChange={handleChange}
-          required
-        >
-          <option value="">-- Select PAAM Identifier --</option>
-          {Array.from({ length: 9 }, (_, i) => (
-            <option key={i + 1} value={i + 1}>
-              {i + 1}
-            </option>
-          ))}
-        </select>
+        <div style={fieldContainer}>
+          <label style={labelStyle}>PAAM Identifier Type:</label>
+          <select
+            name="paamIdentifierType"
+            value={formData.paamIdentifierType}
+            onChange={handleChange}
+            style={inputStyle}
+          >
+            <option value="">Select Identifier</option>
+            {[...Array(9)].map((_, i) => (
+              <option key={i + 1} value={i + 1}>
+                {i + 1}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
 
-        <button type="submit">Submit</button>
-      </form>
-    </div>
+      <button type="submit" style={buttonStyle}>
+        Submit
+      </button>
+    </form>
   );
 };
 
-export default RequestForm;
+export default SlpForm;

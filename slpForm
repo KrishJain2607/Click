@@ -58,6 +58,17 @@ const SlpForm = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    // 🔎 Check if any field is empty
+    const emptyFields = Object.entries(formData).filter(([_, value]) => value.trim() === '');
+
+    if (emptyFields.length > 0) {
+      alert(`Please fill in all fields. Missing: ${emptyFields.map(([field]) => field).join(', ')}`);
+      return;
+    }
+
+    // ✅ Show alert on successful submission
+    alert(`Form Submitted Successfully! \n\n${JSON.stringify(formData, null, 2)}`);
     console.log('Form Submitted:', formData);
   };
 
@@ -72,6 +83,7 @@ const SlpForm = () => {
             value={formData.systemName}
             onChange={handleChange}
             style={inputStyle}
+            required
           />
         </div>
 
@@ -83,6 +95,7 @@ const SlpForm = () => {
             value={formData.reqUserName}
             onChange={handleChange}
             style={inputStyle}
+            required
           />
         </div>
 
@@ -94,17 +107,19 @@ const SlpForm = () => {
             value={formData.replyUserName}
             onChange={handleChange}
             style={inputStyle}
+            required
           />
         </div>
 
         <div style={fieldContainer}>
           <label style={labelStyle}>Reply Password:</label>
           <input
-            type="password"
+            type="text"
             name="replyPassword"
             value={formData.replyPassword}
             onChange={handleChange}
             style={inputStyle}
+            required
           />
         </div>
 
@@ -115,6 +130,7 @@ const SlpForm = () => {
             value={formData.deliveryMode}
             onChange={handleChange}
             style={inputStyle}
+            required
           >
             <option value="">Select Mode</option>
             <option value="SYNC">SYNC</option>
@@ -129,6 +145,7 @@ const SlpForm = () => {
             value={formData.paamIdentifierType}
             onChange={handleChange}
             style={inputStyle}
+            required
           >
             <option value="">Select Identifier</option>
             {[...Array(9)].map((_, i) => (
@@ -140,7 +157,11 @@ const SlpForm = () => {
         </div>
       </div>
 
-      <button type="submit" style={buttonStyle}>
+      <button
+        type="submit"
+        style={buttonStyle}
+        onClick={() => console.log('Submit button clicked')} // 🖱️ Console log for button click
+      >
         Submit
       </button>
     </form>

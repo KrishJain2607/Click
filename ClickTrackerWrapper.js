@@ -21,6 +21,7 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
     };
 
     const sendDataToBackend = (clickData) => {
+        if (clickData.length === 0) return; // Prevent sending empty arrays
         fetch(serverURL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -36,33 +37,31 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
             if (!elementId || !clickMapping[elementId]) return; // Ignore if not in `clickMapping`
 
             const currentURL = window.location.href;
-            const timestamp = new Date();
-            const formattedTime = timestamp.toLocaleTimeString("en-GB"); // 00:00:00 format
+            const timestamp = new Date().toLocaleTimeString("en-GB"); // 00:00:00 format
 
             let timeBetweenClicks = null;
             if (lastClickTime.current) {
-                const timeDiff = timestamp - lastClickTime.current;
-                const dateObj = new Date(timeDiff);
-                timeBetweenClicks = dateObj.toISOString().substr(11, 8);
+                const timeDiff = new Date() - lastClickTime.current;
+                timeBetweenClicks = new Date(timeDiff).toISOString().substr(11, 8);
             }
-            lastClickTime.current = timestamp;
+            lastClickTime.current = new Date();
 
             // 🔥 **Use the mapped value instead of the element's ID**
             const newClick = {
                 elementClicked: clickMapping[elementId], // Send mapped value
                 currentURL,
                 previousURL: previousURL.current,
-                timestamp: formattedTime,
+                timestamp,
                 timeBetweenClicks,
                 entryURL: entryURL.current,
                 exitURL: null,
             };
 
-            sendDataToBackend([newClick]);
-
             let clickData = loadClickData();
             clickData.push(newClick);
             saveClickData(clickData);
+
+            sendDataToBackend([newClick]);
 
             if (currentURL !== previousURL.current) {
                 previousURL.current = currentURL;
@@ -73,9 +72,7 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
 
         const interval = setInterval(() => {
             let clickData = loadClickData();
-            if (clickData.length > 0) {
-                sendDataToBackend(clickData);
-            }
+            sendDataToBackend(clickData);
         }, 10000);
 
         return () => {

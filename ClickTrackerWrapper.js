@@ -5,21 +5,18 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
     const entryURL = useRef(window.location.href);
     const previousURL = useRef(null);
 
-    // 🔥 Define an empty mapping object (to be manually updated with key-value pairs)
-    const clickMapping = {
-        // Example: "submit-btn": "Submit Order",
-        // "cancel-btn": "Cancel Order"
-    };
-
+    // Load stored click data from localStorage
     const loadClickData = () => {
         const storedData = localStorage.getItem("clickData");
         return storedData ? JSON.parse(storedData) : [];
     };
 
+    // Save click data to localStorage
     const saveClickData = (data) => {
         localStorage.setItem("clickData", JSON.stringify(data));
     };
 
+    // Send data immediately to the backend
     const sendDataToBackend = (clickData) => {
         fetch(serverURL, {
             method: "POST",
@@ -32,8 +29,11 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
 
     useEffect(() => {
         const handleClick = (event) => {
-            const elementId = event.target.id; // Only check `id` for now
-            if (!elementId || !clickMapping[elementId]) return; // Ignore if not in `clickMapping`
+            const target = event.target;
+            if (!target) return;
+
+            const elementName = target.id || target.className || target.innerText || target.placeholder;
+            if (!elementName) return; // Ignore clicks without a valid element name
 
             const currentURL = window.location.href;
             const timestamp = new Date();
@@ -47,23 +47,26 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
             }
             lastClickTime.current = timestamp;
 
-            // 🔥 **Use the mapped value instead of the element's ID**
+            // 🔥 **Create new click data object immediately**
             const newClick = {
-                elementClicked: clickMapping[elementId], // Send mapped value
+                elementName,
                 currentURL,
                 previousURL: previousURL.current,
                 timestamp: formattedTime,
                 timeBetweenClicks,
                 entryURL: entryURL.current,
-                exitURL: null,
+                exitURL: null, // Will be updated later
             };
 
+            // 🔥 **Send latest click data immediately before storing**
+            sendDataToBackend([newClick]);
+
+            // Load existing click data from localStorage
             let clickData = loadClickData();
             clickData.push(newClick);
             saveClickData(clickData);
 
-            sendDataToBackend([newClick]);
-
+            // Update previous URL on page navigation
             if (currentURL !== previousURL.current) {
                 previousURL.current = currentURL;
             }
@@ -76,7 +79,7 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
             if (clickData.length > 0) {
                 sendDataToBackend(clickData);
             }
-        }, 10000);
+        }, 10000); // Send data every 10 sec
 
         return () => {
             document.removeEventListener("click", handleClick);
@@ -90,7 +93,7 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
             if (clickData.length > 0) {
                 clickData[clickData.length - 1].exitURL = window.location.href;
                 navigator.sendBeacon(serverURL, JSON.stringify(clickData));
-                localStorage.removeItem("clickData");
+                localStorage.removeItem("clickData"); // Clear localStorage after sending
             }
         };
         window.addEventListener("beforeunload", handleBeforeUnload);
@@ -101,3 +104,11 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
 };
 
 export default ClickTrackerWrapper;
+
+
+please analyze the code carefully and let me know once done we can then discuss further
+OKay so for now the above code is tracking clicks wherever it is able to find target.id || target.className || target.innerText || target.placeholder. So now I want to tweak the code a bit. I have a pre existing code of the UI and I  want you to create for me a logic such that, inplace of tracking the above, I can just define a list of key-value pairs such that if and only if the clicked element is one of the key's already defined only then it will be sent to the server else it wont be sent and in that too if the key is defined it send the corresponding value to the server and not the key that has been detected. 
+
+
+First just explain me your understanding about the above and let me know the approach we can take to achieve the same and then once we are through it we can code the same. Also feel free to ask me if you have any doubts or questino regarding the same  
+

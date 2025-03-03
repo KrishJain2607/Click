@@ -113,7 +113,6 @@ OKay so for now the above code is tracking clicks wherever it is able to find ta
 First just explain me your understanding about the above and let me know the approach we can take to achieve the same and then once we are through it we can code the same. Also feel free to ask me if you have any doubts or questino regarding the same  
 
 
-
 import React, { useEffect, useRef } from "react";
 
 const ClickTrackerWrapper = ({ children, serverURL, trackedElements }) => {
@@ -147,8 +146,8 @@ const ClickTrackerWrapper = ({ children, serverURL, trackedElements }) => {
 
             const elementKey = Object.keys(trackedElements).find((key) => 
                 target.id === key || 
-                target.className.includes(key) || 
-                target.innerText.trim() === key
+                target.className === key || 
+                target.placeholder === key
             );
             
             if (!elementKey) return; // Ignore clicks not in the predefined list
@@ -217,4 +216,3 @@ const ClickTrackerWrapper = ({ children, serverURL, trackedElements }) => {
 };
 
 export default ClickTrackerWrapper;
-

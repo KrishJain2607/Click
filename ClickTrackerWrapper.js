@@ -112,3 +112,109 @@ OKay so for now the above code is tracking clicks wherever it is able to find ta
 
 First just explain me your understanding about the above and let me know the approach we can take to achieve the same and then once we are through it we can code the same. Also feel free to ask me if you have any doubts or questino regarding the same  
 
+
+
+import React, { useEffect, useRef } from "react";
+
+const ClickTrackerWrapper = ({ children, serverURL, trackedElements }) => {
+    const lastClickTime = useRef(null);
+    const entryURL = useRef(window.location.href);
+    const previousURL = useRef(null);
+
+    const loadClickData = () => {
+        const storedData = localStorage.getItem("clickData");
+        return storedData ? JSON.parse(storedData) : [];
+    };
+
+    const saveClickData = (data) => {
+        localStorage.setItem("clickData", JSON.stringify(data));
+    };
+
+    const sendDataToBackend = (clickData) => {
+        fetch(serverURL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(clickData),
+        }).then(() => {
+            localStorage.removeItem("clickData");
+        }).catch(err => console.error("Error sending click data:", err));
+    };
+
+    useEffect(() => {
+        const handleClick = (event) => {
+            const target = event.target;
+            if (!target) return;
+
+            const elementKey = Object.keys(trackedElements).find((key) => 
+                target.id === key || 
+                target.className.includes(key) || 
+                target.innerText.trim() === key
+            );
+            
+            if (!elementKey) return; // Ignore clicks not in the predefined list
+            
+            const elementValue = trackedElements[elementKey]; // Get the mapped value
+            const currentURL = window.location.href;
+            const timestamp = new Date().toLocaleTimeString("en-GB");
+
+            let timeBetweenClicks = null;
+            if (lastClickTime.current) {
+                const timeDiff = new Date() - lastClickTime.current;
+                timeBetweenClicks = new Date(timeDiff).toISOString().substr(11, 8);
+            }
+            lastClickTime.current = new Date();
+
+            const newClick = {
+                elementName: elementValue, // Send mapped value instead of detected key
+                currentURL,
+                previousURL: previousURL.current,
+                timestamp,
+                timeBetweenClicks,
+                entryURL: entryURL.current,
+                exitURL: null,
+            };
+
+            sendDataToBackend([newClick]);
+            
+            let clickData = loadClickData();
+            clickData.push(newClick);
+            saveClickData(clickData);
+
+            if (currentURL !== previousURL.current) {
+                previousURL.current = currentURL;
+            }
+        };
+
+        document.addEventListener("click", handleClick);
+        
+        const interval = setInterval(() => {
+            let clickData = loadClickData();
+            if (clickData.length > 0) {
+                sendDataToBackend(clickData);
+            }
+        }, 10000);
+
+        return () => {
+            document.removeEventListener("click", handleClick);
+            clearInterval(interval);
+        };
+    }, [serverURL, trackedElements]);
+
+    useEffect(() => {
+        const handleBeforeUnload = () => {
+            let clickData = loadClickData();
+            if (clickData.length > 0) {
+                clickData[clickData.length - 1].exitURL = window.location.href;
+                navigator.sendBeacon(serverURL, JSON.stringify(clickData));
+                localStorage.removeItem("clickData");
+            }
+        };
+        window.addEventListener("beforeunload", handleBeforeUnload);
+        return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+    }, [serverURL]);
+
+    return <>{children}</>;
+};
+
+export default ClickTrackerWrapper;
+

@@ -111,80 +111,92 @@ OKay so for now the above code is tracking clicks wherever it is able to find ta
 
 
 First just explain me your understanding about the above and let me know the approach we can take to achieve the same and then once we are through it we can code the same. Also feel free to ask me if you have any doubts or questino regarding the same  
-
 import React, { useEffect, useRef } from "react";
+import PropTypes from "prop-types"; // For prop validation
 
 const ClickTrackerWrapper = ({ children, serverURL, trackedElements }) => {
     const lastClickTime = useRef(null);
     const entryURL = useRef(window.location.href);
     const previousURL = useRef(null);
 
+    // Load stored click data from localStorage
     const loadClickData = () => {
         const storedData = localStorage.getItem("clickData");
         return storedData ? JSON.parse(storedData) : [];
     };
 
+    // Save click data to localStorage
     const saveClickData = (data) => {
         localStorage.setItem("clickData", JSON.stringify(data));
     };
 
+    // Send data immediately to the backend
     const sendDataToBackend = (clickData) => {
         fetch(serverURL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(clickData),
-        })
-        .then(() => localStorage.removeItem("clickData"))
-        .catch(err => console.error("Error sending click data:", err));
+        }).then(() => {
+            localStorage.removeItem("clickData"); // Clear after sending
+        }).catch(err => console.error("Error sending click data:", err));
     };
 
     useEffect(() => {
         const handleClick = (event) => {
             const target = event.target;
-            if (!target || !(target instanceof HTMLElement)) return;
+            if (!target) return;
 
-            let elementKey = null;
+            // Extract attributes from the clicked element
+            const attributes = {
+                className: target.className,
+                id: target.id,
+                placeholder: target.placeholder,
+                innerText: target.innerText,
+            };
 
-            // Check in sequence: id -> className -> placeholder -> innerText
-            if (trackedElements[target.id]) {
-                elementKey = target.id;
-            } else if (trackedElements[target.className]) {
-                elementKey = target.className;
-            } else if (typeof target.placeholder === "string" && trackedElements[target.placeholder]) {
-                elementKey = target.placeholder;
-            } else if (typeof target.innerText === "string" && trackedElements[target.innerText.trim()]) {
-                elementKey = target.innerText.trim();
+            // Check if any attribute matches a key in trackedElements
+            let elementName = null;
+            for (const [key, value] of Object.entries(attributes)) {
+                if (trackedElements[value]) {
+                    elementName = trackedElements[value]; // Use the value from trackedElements
+                    break; // Stop after the first match
+                }
             }
 
-            if (!elementKey) return; // Ignore if not in trackedElements
+            if (!elementName) return; // Ignore clicks without a match
 
-            const elementValue = trackedElements[elementKey]; // Get the mapped value
             const currentURL = window.location.href;
-            const timestamp = new Date().toLocaleTimeString("en-GB");
+            const timestamp = new Date();
+            const formattedTime = timestamp.toLocaleTimeString("en-GB"); // 00:00:00 format
 
             let timeBetweenClicks = null;
             if (lastClickTime.current) {
-                const timeDiff = new Date() - lastClickTime.current;
-                timeBetweenClicks = Math.floor(timeDiff / 1000) + "s"; // Convert to seconds
+                const timeDiff = timestamp - lastClickTime.current;
+                const dateObj = new Date(timeDiff);
+                timeBetweenClicks = dateObj.toISOString().substr(11, 8); // Format to HH:MM:SS
             }
-            lastClickTime.current = new Date();
+            lastClickTime.current = timestamp;
 
+            // Create new click data object
             const newClick = {
-                elementName: elementValue, // Send mapped value instead of detected key
+                elementName,
                 currentURL,
                 previousURL: previousURL.current,
-                timestamp,
+                timestamp: formattedTime,
                 timeBetweenClicks,
                 entryURL: entryURL.current,
-                exitURL: null,
+                exitURL: null, // Will be updated later
             };
 
+            // Send latest click data immediately before storing
             sendDataToBackend([newClick]);
 
+            // Load existing click data from localStorage
             let clickData = loadClickData();
             clickData.push(newClick);
             saveClickData(clickData);
 
+            // Update previous URL on page navigation
             if (currentURL !== previousURL.current) {
                 previousURL.current = currentURL;
             }
@@ -197,13 +209,13 @@ const ClickTrackerWrapper = ({ children, serverURL, trackedElements }) => {
             if (clickData.length > 0) {
                 sendDataToBackend(clickData);
             }
-        }, 10000);
+        }, 10000); // Send data every 10 sec
 
         return () => {
             document.removeEventListener("click", handleClick);
             clearInterval(interval);
         };
-    }, [serverURL, trackedElements]);
+    }, [serverURL, trackedElements]); // Add trackedElements to dependency array
 
     useEffect(() => {
         const handleBeforeUnload = () => {
@@ -211,7 +223,7 @@ const ClickTrackerWrapper = ({ children, serverURL, trackedElements }) => {
             if (clickData.length > 0) {
                 clickData[clickData.length - 1].exitURL = window.location.href;
                 navigator.sendBeacon(serverURL, JSON.stringify(clickData));
-                localStorage.removeItem("clickData");
+                localStorage.removeItem("clickData"); // Clear localStorage after sending
             }
         };
         window.addEventListener("beforeunload", handleBeforeUnload);
@@ -219,6 +231,13 @@ const ClickTrackerWrapper = ({ children, serverURL, trackedElements }) => {
     }, [serverURL]);
 
     return <>{children}</>;
+};
+
+// Prop validation
+ClickTrackerWrapper.propTypes = {
+    children: PropTypes.node.isRequired,
+    serverURL: PropTypes.string.isRequired,
+    trackedElements: PropTypes.object.isRequired, // trackedElements is now required
 };
 
 export default ClickTrackerWrapper;

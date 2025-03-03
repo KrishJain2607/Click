@@ -143,14 +143,21 @@ const ClickTrackerWrapper = ({ children, serverURL, trackedElements }) => {
             const target = event.target;
             if (!target || !(target instanceof HTMLElement)) return;
 
-            const elementKey = Object.keys(trackedElements).find((key) =>
-                key === target.id ||
-                (target.classList?.contains(key)) || 
-                (typeof target.placeholder === "string" && target.placeholder === key)
-            );
-            
-            if (!elementKey) return; // Ignore clicks not in the predefined list
-            
+            let elementKey = null;
+
+            // Check in sequence: id -> className -> placeholder -> innerText
+            if (trackedElements[target.id]) {
+                elementKey = target.id;
+            } else if (trackedElements[target.className]) {
+                elementKey = target.className;
+            } else if (typeof target.placeholder === "string" && trackedElements[target.placeholder]) {
+                elementKey = target.placeholder;
+            } else if (typeof target.innerText === "string" && trackedElements[target.innerText.trim()]) {
+                elementKey = target.innerText.trim();
+            }
+
+            if (!elementKey) return; // Ignore if not in trackedElements
+
             const elementValue = trackedElements[elementKey]; // Get the mapped value
             const currentURL = window.location.href;
             const timestamp = new Date().toLocaleTimeString("en-GB");
@@ -173,7 +180,7 @@ const ClickTrackerWrapper = ({ children, serverURL, trackedElements }) => {
             };
 
             sendDataToBackend([newClick]);
-            
+
             let clickData = loadClickData();
             clickData.push(newClick);
             saveClickData(clickData);
@@ -184,7 +191,7 @@ const ClickTrackerWrapper = ({ children, serverURL, trackedElements }) => {
         };
 
         document.addEventListener("click", handleClick);
-        
+
         const interval = setInterval(() => {
             let clickData = loadClickData();
             if (clickData.length > 0) {
@@ -215,4 +222,3 @@ const ClickTrackerWrapper = ({ children, serverURL, trackedElements }) => {
 };
 
 export default ClickTrackerWrapper;
-

@@ -112,7 +112,6 @@ OKay so for now the above code is tracking clicks wherever it is able to find ta
 
 First just explain me your understanding about the above and let me know the approach we can take to achieve the same and then once we are through it we can code the same. Also feel free to ask me if you have any doubts or questino regarding the same  
 
-
 import React, { useEffect, useRef } from "react";
 
 const ClickTrackerWrapper = ({ children, serverURL, trackedElements }) => {
@@ -134,20 +133,20 @@ const ClickTrackerWrapper = ({ children, serverURL, trackedElements }) => {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(clickData),
-        }).then(() => {
-            localStorage.removeItem("clickData");
-        }).catch(err => console.error("Error sending click data:", err));
+        })
+        .then(() => localStorage.removeItem("clickData"))
+        .catch(err => console.error("Error sending click data:", err));
     };
 
     useEffect(() => {
         const handleClick = (event) => {
             const target = event.target;
-            if (!target) return;
+            if (!target || !(target instanceof HTMLElement)) return;
 
-            const elementKey = Object.keys(trackedElements).find((key) => 
-                target.id === key || 
-                target.className === key || 
-                target.placeholder === key
+            const elementKey = Object.keys(trackedElements).find((key) =>
+                key === target.id ||
+                (target.classList?.contains(key)) || 
+                (typeof target.placeholder === "string" && target.placeholder === key)
             );
             
             if (!elementKey) return; // Ignore clicks not in the predefined list
@@ -159,7 +158,7 @@ const ClickTrackerWrapper = ({ children, serverURL, trackedElements }) => {
             let timeBetweenClicks = null;
             if (lastClickTime.current) {
                 const timeDiff = new Date() - lastClickTime.current;
-                timeBetweenClicks = new Date(timeDiff).toISOString().substr(11, 8);
+                timeBetweenClicks = Math.floor(timeDiff / 1000) + "s"; // Convert to seconds
             }
             lastClickTime.current = new Date();
 
@@ -216,3 +215,4 @@ const ClickTrackerWrapper = ({ children, serverURL, trackedElements }) => {
 };
 
 export default ClickTrackerWrapper;
+

@@ -111,6 +111,8 @@ OKay so for now the above code is tracking clicks wherever it is able to find ta
 
 
 First just explain me your understanding about the above and let me know the approach we can take to achieve the same and then once we are through it we can code the same. Also feel free to ask me if you have any doubts or questino regarding the same  
+
+
 import React, { useEffect, useRef } from "react";
 import PropTypes from "prop-types"; // For prop validation
 
@@ -148,18 +150,33 @@ const ClickTrackerWrapper = ({ children, serverURL, trackedElements }) => {
 
             // Extract attributes from the clicked element
             const attributes = {
-                className: target.className,
-                id: target.id,
-                placeholder: target.placeholder,
-                innerText: target.innerText,
+                className: target.className, // Space-separated class names
+                id: target.getAttribute("id"), // Use getAttribute for accurate extraction
+                placeholder: target.getAttribute("placeholder"), // Use getAttribute for accurate extraction
+                innerText: target.innerText.trim(), // Trim whitespace and newlines
             };
 
             // Check if any attribute matches a key in trackedElements
             let elementName = null;
-            for (const [key, value] of Object.entries(attributes)) {
-                if (trackedElements[value]) {
-                    elementName = trackedElements[value]; // Use the value from trackedElements
-                    break; // Stop after the first match
+
+            // Check className (split into individual class names)
+            if (attributes.className) {
+                const classNames = attributes.className.split(" ");
+                for (const className of classNames) {
+                    if (trackedElements[className]) {
+                        elementName = trackedElements[className];
+                        break;
+                    }
+                }
+            }
+
+            // Check id, placeholder, and innerText if no match found yet
+            if (!elementName) {
+                for (const [key, value] of Object.entries(attributes)) {
+                    if (key !== "className" && trackedElements[value]) {
+                        elementName = trackedElements[value];
+                        break;
+                    }
                 }
             }
 

@@ -21,7 +21,6 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
     };
 
     const sendDataToBackend = (clickData) => {
-        if (clickData.length === 0) return; // Prevent sending empty arrays
         fetch(serverURL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -37,21 +36,23 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
             if (!elementId || !clickMapping[elementId]) return; // Ignore if not in `clickMapping`
 
             const currentURL = window.location.href;
-            const timestamp = new Date().toLocaleTimeString("en-GB"); // 00:00:00 format
+            const timestamp = new Date();
+            const formattedTime = timestamp.toLocaleTimeString("en-GB"); // 00:00:00 format
 
             let timeBetweenClicks = null;
             if (lastClickTime.current) {
-                const timeDiff = new Date() - lastClickTime.current;
-                timeBetweenClicks = new Date(timeDiff).toISOString().substr(11, 8);
+                const timeDiff = timestamp - lastClickTime.current;
+                const dateObj = new Date(timeDiff);
+                timeBetweenClicks = dateObj.toISOString().substr(11, 8); // Format to HH:MM:SS
             }
-            lastClickTime.current = new Date();
+            lastClickTime.current = timestamp;
 
             // 🔥 **Use the mapped value instead of the element's ID**
             const newClick = {
                 elementClicked: clickMapping[elementId], // Send mapped value
                 currentURL,
                 previousURL: previousURL.current,
-                timestamp,
+                timestamp: formattedTime,
                 timeBetweenClicks,
                 entryURL: entryURL.current,
                 exitURL: null,
@@ -72,7 +73,9 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
 
         const interval = setInterval(() => {
             let clickData = loadClickData();
-            sendDataToBackend(clickData);
+            if (clickData.length > 0) {
+                sendDataToBackend(clickData);
+            }
         }, 10000);
 
         return () => {

@@ -118,6 +118,7 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
     const lastClickTime = useRef(null);
     const entryURL = useRef(window.location.href);
     const previousURL = useRef(null);
+    const activeDropdown = useRef(null); // Track active dropdown
 
     const loadClickData = () => {
         const storedData = localStorage.getItem("clickData");
@@ -141,8 +142,6 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
     };
 
     useEffect(() => {
-        let activeDropdown = null;
-
         const handleClick = (event) => {
             const timestamp = new Date();
             const formattedTime = timestamp.toLocaleTimeString("en-GB");
@@ -154,10 +153,9 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
                 timeBetweenClicks = dateObj.toISOString().substr(11, 8);
             }
             lastClickTime.current = timestamp;
-
             const currentURL = window.location.href;
 
-            // 1️⃣ **Tracking Regular Clicks (No Change in Existing Logic)**
+            // 1️⃣ **Regular Click Tracking (Existing Feature, Unchanged)**
             const targetElement = event.target.closest("[click-id]");
             if (targetElement) {
                 const clickId = targetElement.getAttribute("click-id");
@@ -178,36 +176,13 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
                 saveClickData(clickData);
             }
 
-            // 2️⃣ **Tracking Dropdowns using `track-id`**
-            const dropdownParent = event.target.closest("[track-id]");
-            if (dropdownParent) {
-                const dropdownId = dropdownParent.getAttribute("track-id");
-
-                // 🔹 Case 1: Clicking the dropdown itself (Opening the dropdown)
-                if (!dropdownParent.classList.contains("dropdown-open")) {
-                    dropdownParent.classList.add("dropdown-open");
-                    activeDropdown = dropdownParent; // Store active dropdown
-
-                    const dropdownClick = {
-                        elementName: `Dropdown Opened: ${dropdownId}`,
-                        currentURL,
-                        previousURL: previousURL.current,
-                        timestamp: formattedTime,
-                        timeBetweenClicks,
-                        entryURL: entryURL.current,
-                        exitURL: null,
-                    };
-                    sendDataToBackend([dropdownClick]);
-                }
-            }
-
-            // 3️⃣ **Tracking Dropdown Selection**
-            if (activeDropdown) {
-                const selectedOption = event.target.closest("li, option, [role='option']");
+            // 2️⃣ **Dropdown Selection Tracking**
+            if (activeDropdown.current) {
+                const selectedOption = event.target.closest("li, option, [role='option'], .dropdown-option");
                 if (selectedOption) {
                     const selectedValue = selectedOption.getAttribute("data-value") || selectedOption.innerText.trim();
                     if (selectedValue) {
-                        const dropdownId = activeDropdown.getAttribute("track-id");
+                        const dropdownId = activeDropdown.current.getAttribute("track-id");
 
                         const dropdownSelection = {
                             elementName: `Dropdown Selected: ${dropdownId} → ${selectedValue}`,
@@ -219,8 +194,7 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
                             exitURL: null,
                         };
                         sendDataToBackend([dropdownSelection]);
-                        activeDropdown.classList.remove("dropdown-open"); // Reset dropdown state
-                        activeDropdown = null;
+                        activeDropdown.current = null; // Reset tracking
                     }
                 }
             }
@@ -230,7 +204,30 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
             }
         };
 
+        const handleDropdownOpen = (event) => {
+            const dropdownParent = event.target.closest("[track-id]");
+            if (dropdownParent) {
+                const dropdownId = dropdownParent.getAttribute("track-id");
+
+                const timestamp = new Date();
+                const formattedTime = timestamp.toLocaleTimeString("en-GB");
+
+                const dropdownClick = {
+                    elementName: `Dropdown Opened: ${dropdownId}`,
+                    currentURL: window.location.href,
+                    previousURL: previousURL.current,
+                    timestamp: formattedTime,
+                    timeBetweenClicks: null,
+                    entryURL: entryURL.current,
+                    exitURL: null,
+                };
+                sendDataToBackend([dropdownClick]);
+                activeDropdown.current = dropdownParent; // Store active dropdown
+            }
+        };
+
         document.addEventListener("click", handleClick);
+        document.addEventListener("mousedown", handleDropdownOpen); // Detect dropdown opening
 
         const interval = setInterval(() => {
             let clickData = loadClickData();
@@ -241,6 +238,7 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
 
         return () => {
             document.removeEventListener("click", handleClick);
+            document.removeEventListener("mousedown", handleDropdownOpen);
             clearInterval(interval);
         };
     }, [serverURL]);

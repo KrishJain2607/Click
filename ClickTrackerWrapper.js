@@ -112,7 +112,6 @@ OKay so for now the above code is tracking clicks wherever it is able to find ta
 
 First just explain me your understanding about the above and let me know the approach we can take to achieve the same and then once we are through it we can code the same. Also feel free to ask me if you have any doubts or questino regarding the same  
 
-
 import React, { useEffect, useRef } from "react";
 
 const ClickTrackerWrapper = ({ children, serverURL }) => {
@@ -143,16 +142,10 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
 
     useEffect(() => {
         const handleClick = (event) => {
-            // Check if the clicked element or any of its parents has the "click-id" attribute
-            const targetElement = event.target.closest("[click-id]");
-            if (!targetElement) return; // Ignore clicks on elements without "click-id"
-
-            const clickId = targetElement.getAttribute("click-id"); // Get the click-id value
-            const currentURL = window.location.href;
             const timestamp = new Date();
             const formattedTime = timestamp.toLocaleTimeString("en-GB");
-
             let timeBetweenClicks = null;
+
             if (lastClickTime.current) {
                 const timeDiff = timestamp - lastClickTime.current;
                 const dateObj = new Date(timeDiff);
@@ -160,22 +153,65 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
             }
             lastClickTime.current = timestamp;
 
-            // 🔥 **Create new click data object with click-id instead of elementName**
-            const newClick = {
-                elementName: clickId, // Store click-id instead of generic element name
-                currentURL,
-                previousURL: previousURL.current,
-                timestamp: formattedTime,
-                timeBetweenClicks,
-                entryURL: entryURL.current,
-                exitURL: null,
-            };
+            const currentURL = window.location.href;
 
-            sendDataToBackend([newClick]);
+            // 1️⃣ **Tracking Regular Clicks (No Change in Existing Logic)**
+            const targetElement = event.target.closest("[click-id]");
+            if (targetElement) {
+                const clickId = targetElement.getAttribute("click-id");
+                const newClick = {
+                    elementName: clickId,
+                    currentURL,
+                    previousURL: previousURL.current,
+                    timestamp: formattedTime,
+                    timeBetweenClicks,
+                    entryURL: entryURL.current,
+                    exitURL: null,
+                };
 
-            let clickData = loadClickData();
-            clickData.push(newClick);
-            saveClickData(clickData);
+                sendDataToBackend([newClick]);
+
+                let clickData = loadClickData();
+                clickData.push(newClick);
+                saveClickData(clickData);
+            }
+
+            // 2️⃣ **Tracking Dropdowns using `track-id`**
+            const dropdownParent = event.target.closest("[track-id]");
+            if (dropdownParent) {
+                const dropdownId = dropdownParent.getAttribute("track-id");
+
+                // 🔹 Case 1: Clicking the dropdown itself (Opening the dropdown)
+                if (!dropdownParent.classList.contains("dropdown-open")) {
+                    dropdownParent.classList.add("dropdown-open");
+                    const dropdownClick = {
+                        elementName: `Dropdown Opened: ${dropdownId}`,
+                        currentURL,
+                        previousURL: previousURL.current,
+                        timestamp: formattedTime,
+                        timeBetweenClicks,
+                        entryURL: entryURL.current,
+                        exitURL: null,
+                    };
+                    sendDataToBackend([dropdownClick]);
+                }
+
+                // 🔹 Case 2: Clicking an option inside the dropdown (Selecting a value)
+                const selectedOption = event.target.closest("[data-value]");
+                if (selectedOption) {
+                    const selectedValue = selectedOption.getAttribute("data-value") || selectedOption.innerText.trim();
+                    const dropdownSelection = {
+                        elementName: `Dropdown Selected: ${dropdownId} → ${selectedValue}`,
+                        currentURL,
+                        previousURL: previousURL.current,
+                        timestamp: formattedTime,
+                        timeBetweenClicks,
+                        entryURL: entryURL.current,
+                        exitURL: null,
+                    };
+                    sendDataToBackend([dropdownSelection]);
+                }
+            }
 
             if (currentURL !== previousURL.current) {
                 previousURL.current = currentURL;

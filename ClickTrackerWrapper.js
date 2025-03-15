@@ -141,6 +141,8 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
     };
 
     useEffect(() => {
+        let activeDropdown = null;
+
         const handleClick = (event) => {
             const timestamp = new Date();
             const formattedTime = timestamp.toLocaleTimeString("en-GB");
@@ -184,6 +186,8 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
                 // 🔹 Case 1: Clicking the dropdown itself (Opening the dropdown)
                 if (!dropdownParent.classList.contains("dropdown-open")) {
                     dropdownParent.classList.add("dropdown-open");
+                    activeDropdown = dropdownParent; // Store active dropdown
+
                     const dropdownClick = {
                         elementName: `Dropdown Opened: ${dropdownId}`,
                         currentURL,
@@ -195,21 +199,29 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
                     };
                     sendDataToBackend([dropdownClick]);
                 }
+            }
 
-                // 🔹 Case 2: Clicking an option inside the dropdown (Selecting a value)
-                const selectedOption = event.target.closest("[data-value]");
+            // 3️⃣ **Tracking Dropdown Selection**
+            if (activeDropdown) {
+                const selectedOption = event.target.closest("li, option, [role='option']");
                 if (selectedOption) {
                     const selectedValue = selectedOption.getAttribute("data-value") || selectedOption.innerText.trim();
-                    const dropdownSelection = {
-                        elementName: `Dropdown Selected: ${dropdownId} → ${selectedValue}`,
-                        currentURL,
-                        previousURL: previousURL.current,
-                        timestamp: formattedTime,
-                        timeBetweenClicks,
-                        entryURL: entryURL.current,
-                        exitURL: null,
-                    };
-                    sendDataToBackend([dropdownSelection]);
+                    if (selectedValue) {
+                        const dropdownId = activeDropdown.getAttribute("track-id");
+
+                        const dropdownSelection = {
+                            elementName: `Dropdown Selected: ${dropdownId} → ${selectedValue}`,
+                            currentURL,
+                            previousURL: previousURL.current,
+                            timestamp: formattedTime,
+                            timeBetweenClicks,
+                            entryURL: entryURL.current,
+                            exitURL: null,
+                        };
+                        sendDataToBackend([dropdownSelection]);
+                        activeDropdown.classList.remove("dropdown-open"); // Reset dropdown state
+                        activeDropdown = null;
+                    }
                 }
             }
 

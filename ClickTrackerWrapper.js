@@ -112,7 +112,8 @@ OKay so for now the above code is tracking clicks wherever it is able to find ta
 
 First just explain me your understanding about the above and let me know the approach we can take to achieve the same and then once we are through it we can code the same. Also feel free to ask me if you have any doubts or questino regarding the same  
 
-import React, { useEffect, useRef } from "react";
+
+   import React, { useEffect, useRef } from "react";
 
 const ClickTrackerWrapper = ({ children, serverURL }) => {
     const lastClickTime = useRef(null);
@@ -155,12 +156,17 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
             lastClickTime.current = timestamp;
             const currentURL = window.location.href;
 
-            // 1️⃣ **Regular Click Tracking (Existing Feature, Unchanged)**
-            const targetElement = event.target.closest("[click-id]");
-            if (targetElement) {
-                const clickId = targetElement.getAttribute("click-id");
+            // Find the lowest clicked element's inner text
+            const clickedElementText = event.target.innerText.trim();
+
+            // Find the closest parent with a `click-id`
+            const parentElement = event.target.closest("[click-id]");
+            if (parentElement) {
+                const clickId = parentElement.getAttribute("click-id");
+
+                // Log both the clicked element's text and the parent's click-id
                 const newClick = {
-                    elementName: clickId,
+                    elementName: `Clicked: ${clickedElementText} (Parent ID: ${clickId})`,
                     currentURL,
                     previousURL: previousURL.current,
                     timestamp: formattedTime,
@@ -169,14 +175,13 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
                     exitURL: null,
                 };
 
-                sendDataToBackend([newClick]);
-
                 let clickData = loadClickData();
                 clickData.push(newClick);
                 saveClickData(clickData);
+                sendDataToBackend([newClick]);
             }
 
-            // 2️⃣ **Dropdown Selection Tracking**
+            // Handle dropdown selections
             if (activeDropdown.current) {
                 const selectedOption = event.target.closest("li, option, [role='option'], .dropdown-option");
                 if (selectedOption) {
@@ -193,7 +198,12 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
                             entryURL: entryURL.current,
                             exitURL: null,
                         };
+
+                        let clickData = loadClickData();
+                        clickData.push(dropdownSelection);
+                        saveClickData(clickData);
                         sendDataToBackend([dropdownSelection]);
+
                         activeDropdown.current = null; // Reset tracking
                     }
                 }

@@ -518,8 +518,13 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
     const previousURL = useRef(window.location.href);
     const sessionStartTime = useRef(new Date().getTime());
     const scrollDepth = useRef(0);
-    const userID = useRef(localStorage.getItem("userID") || Math.random().toString(36).substr(2, 9));
-    localStorage.setItem("userID", userID.current);
+    const userID = useRef(generateUserID());
+
+    function generateUserID() {
+        const newID = Math.random().toString(36).substr(2, 9);
+        localStorage.setItem("userID", newID);
+        return newID;
+    }
 
     const loadClickData = () => {
         const storedData = localStorage.getItem("clickData");
@@ -597,13 +602,6 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
         document.addEventListener("click", handleClick);
         document.addEventListener("scroll", handleScroll);
 
-        const interval = setInterval(() => {
-            let clickData = loadClickData();
-            if (clickData.length > 0) {
-                sendDataToBackend(clickData);
-            }
-        }, 10000);
-
         const sessionTimeout = setTimeout(() => {
             handleSessionEnd();
         }, 100000); // End session after 100 seconds
@@ -611,7 +609,6 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
         return () => {
             document.removeEventListener("click", handleClick);
             document.removeEventListener("scroll", handleScroll);
-            clearInterval(interval);
             clearTimeout(sessionTimeout);
         };
     }, [serverURL]);
@@ -635,6 +632,9 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
 
         navigator.sendBeacon(serverURL, JSON.stringify([...clickData, sessionData]));
         localStorage.removeItem("clickData");
+        localStorage.removeItem("userID");
+
+        userID.current = generateUserID(); // Generate a new user ID for the next session
     };
 
     useEffect(() => {
@@ -651,4 +651,5 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
 };
 
 export default ClickTrackerWrapper;
+
 

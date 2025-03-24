@@ -223,7 +223,7 @@ import React, {Fragment, useEffect, useRef } from "react";
 const ClickTrackerWrapper = ({ children, serverURL }) => {
     const lastClickTime = useRef(null);
     const entryURL = useRef(window.location.href);
-    const previousURL = useRef(null);
+    const previousURL = useRef(window.location.href); // Initialize properly
     const sessionStartTime = useRef(new Date().getTime());
     const scrollDepth = useRef(0);
     const userID = useRef(localStorage.getItem("userID") || Math.random().toString(36).substr(2, 9));
@@ -239,6 +239,7 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
     };
 
     const sendDataToBackend = (clickData) => {
+        saveClickData(clickData); // Ensure data is saved first
         fetch(serverURL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -266,16 +267,11 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
 
             const parentElement = event.target.closest("[click-id], [dropdown-id]");
             if (parentElement) {
-                const clickId = parentElement.getAttribute("click-id");
-                const dropdownId = parentElement.getAttribute("dropdown-id");
+                const clickId = parentElement.getAttribute("click-id") || "N/A";
+                const dropdownId = parentElement.getAttribute("dropdown-id") || "N/A";
                 const clickedElementText = event.target.innerText.trim();
 
-                let elementName = "";
-                if (clickId) {
-                    elementName = `Clicked: ${clickedElementText} (Parent ID: ${clickId})`;
-                } else if (dropdownId) {
-                    elementName = `${dropdownId} = ${clickedElementText}`;
-                }
+                let elementName = `Clicked: ${clickedElementText} (Click-ID: ${clickId}, Dropdown-ID: ${dropdownId})`;
 
                 const newClick = {
                     userID: userID.current,
@@ -361,4 +357,3 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
 };
 
 export default ClickTrackerWrapper;
-

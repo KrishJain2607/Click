@@ -652,4 +652,3 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
 
 export default ClickTrackerWrapper;
 
-

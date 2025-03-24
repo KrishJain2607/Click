@@ -139,8 +139,7 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
 
             if (lastClickTime.current) {
                 const timeDiff = timestamp - lastClickTime.current;
-                const dateObj = new Date(timeDiff);
-                timeBetweenClicks = dateObj.toISOString().substr(11, 8);
+                timeBetweenClicks = new Date(timeDiff).toISOString().substr(11, 8);
             }
             lastClickTime.current = timestamp;
             const currentURL = window.location.href;
@@ -149,29 +148,32 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
             if (parentElement) {
                 const clickId = parentElement.getAttribute("click-id");
                 const dropdownId = parentElement.getAttribute("dropdown-id");
-                const clickedElementText = event.target.innerText.trim();
+                const clickedElementText = parentElement.innerText.trim();
 
                 let elementName = "";
                 if (clickId) {
                     elementName = `Clicked: ${clickedElementText} (Parent ID: ${clickId})`;
-                } else if (dropdownId) {
+                }
+                if (dropdownId) {
                     elementName = `${dropdownId} = ${clickedElementText}`;
                 }
 
-                const newClick = {
-                    elementName,
-                    currentURL,
-                    previousURL: previousURL.current,
-                    timestamp: formattedTime,
-                    timeBetweenClicks,
-                    entryURL: entryURL.current,
-                    exitURL: null,
-                };
+                if (elementName) {
+                    const newClick = {
+                        elementName,
+                        currentURL,
+                        previousURL: previousURL.current,
+                        timestamp: formattedTime,
+                        timeBetweenClicks,
+                        entryURL: entryURL.current,
+                        exitURL: null,
+                    };
 
-                let clickData = loadClickData();
-                clickData.push(newClick);
-                saveClickData(clickData);
-                sendDataToBackend([newClick]);
+                    let clickData = loadClickData();
+                    clickData.push(newClick);
+                    saveClickData(clickData);
+                    sendDataToBackend([newClick]);
+                }
             }
 
             if (currentURL !== previousURL.current) {
@@ -211,4 +213,3 @@ const ClickTrackerWrapper = ({ children, serverURL }) => {
 };
 
 export default ClickTrackerWrapper;
-

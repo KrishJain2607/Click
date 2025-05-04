@@ -1,0 +1,18 @@
+TimeSpentSeconds =
+VAR currentTime = 'guest test_click_db'[ParsedTimestamp]
+VAR nextTime =
+    CALCULATE(
+        MIN('guest test_click_db'[ParsedTimestamp]),
+        FILTER(
+            'guest test_click_db',
+            'guest test_click_db'[UserId] = EARLIER('guest test_click_db'[UserId]) &&
+            'guest test_click_db'[SessionId] = EARLIER('guest test_click_db'[SessionId]) &&
+            'guest test_click_db'[ParsedTimestamp] > EARLIER('guest test_click_db'[ParsedTimestamp])
+        )
+    )
+RETURN
+IF (
+    ISBLANK(nextTime),
+    BLANK(),
+    DATEDIFF(currentTime, nextTime, SECOND)
+)

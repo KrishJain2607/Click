@@ -248,7 +248,7 @@ const ClickTrackerWrapper = ({ children, serverURL, timeInterval, Button = "on" 
     const sessionStartTimestamp = new Date().toLocaleTimeString("en-GB");
     const clickCounter = useRef(0);
     const observerMap = useRef(new Map());
-    const lastLoggedDropdownValues = useRef(new Map()); // NEW
+    const lastLoggedDropdownValues = useRef(new Map());
 
     function generateUserID() {
         const newID = Math.random().toString(36).substr(2, 9);
@@ -356,28 +356,32 @@ const ClickTrackerWrapper = ({ children, serverURL, timeInterval, Button = "on" 
         }
     };
 
-    const observeDropdownValue = (ddElement, ddId) => {
-        if (observerMap.current.has(ddId)) return;
+    const startGlobalDropdownMonitor = () => {
+        const interval = setInterval(() => {
+            const dropdowns = document.querySelectorAll("[click-dd-id]");
+            dropdowns.forEach((ddElement) => {
+                const ddId = ddElement.getAttribute("click-dd-id");
+                if (!ddId) return;
 
-        const observer = new MutationObserver(() => {
-            const selectedValueEl = ddElement.querySelector(".css-zapjew-singleValue, .MuiSelect-nativeInput");
-            if (selectedValueEl) {
-                const selectedValue = selectedValueEl.textContent || selectedValueEl.value;
-                if (selectedValue) {
-                    const lastLogged = lastLoggedDropdownValues.current.get(ddId);
-                    if (lastLogged !== selectedValue) {
-                        lastLoggedDropdownValues.current.set(ddId, selectedValue); // UPDATE
-                        logClick({
-                            elementName: `${ddId} = ${selectedValue}`,
-                            timeBetweenClicks: null,
-                        });
-                    }
+                let selectedValue = "";
+                const possibleValueEl = ddElement.querySelector("div, span, input");
+                if (possibleValueEl) {
+                    selectedValue = possibleValueEl.textContent || possibleValueEl.value || "";
+                    selectedValue = selectedValue.trim();
                 }
-            }
-        });
 
-        observer.observe(ddElement, { childList: true, subtree: true });
-        observerMap.current.set(ddId, observer);
+                const lastValue = lastLoggedDropdownValues.current.get(ddId);
+                if (selectedValue && selectedValue !== lastValue) {
+                    lastLoggedDropdownValues.current.set(ddId, selectedValue);
+                    logClick({
+                        elementName: `${ddId} = ${selectedValue}`,
+                        timeBetweenClicks: null,
+                    });
+                }
+            });
+        }, 1000);
+
+        observerMap.current.set("globalDropdownWatcher", interval);
     };
 
     const handleInputBlur = (event) => {
@@ -402,12 +406,6 @@ const ClickTrackerWrapper = ({ children, serverURL, timeInterval, Button = "on" 
         const currentURL = window.location.href;
         if (currentURL !== previousURL.current) {
             previousURL.current = currentURL;
-        }
-
-        const ddElement = event.target.closest("[click-dd-id]");
-        if (ddElement) {
-            const ddId = ddElement.getAttribute("click-dd-id");
-            observeDropdownValue(ddElement, ddId); // now tracks changes correctly
         }
 
         const btnElement = event.target.closest("[click-btn-id]");
@@ -462,6 +460,9 @@ const ClickTrackerWrapper = ({ children, serverURL, timeInterval, Button = "on" 
             sendBatchData();
         }, timeInterval);
 
+        // Start monitoring dropdowns
+        startGlobalDropdownMonitor();
+
         return () => {
             document.removeEventListener("click", handleClick);
             document.removeEventListener("scroll", handleScroll);
@@ -469,7 +470,10 @@ const ClickTrackerWrapper = ({ children, serverURL, timeInterval, Button = "on" 
             clearInterval(batchInterval);
             sendBatchData(true);
 
-            observerMap.current.forEach((observer) => observer.disconnect());
+            observerMap.current.forEach((entry) => {
+                if (typeof entry === "number") clearInterval(entry);
+                else if (entry && typeof entry.disconnect === "function") entry.disconnect();
+            });
         };
     }, [serverURL, Button, timeInterval]);
 
@@ -477,4 +481,3 @@ const ClickTrackerWrapper = ({ children, serverURL, timeInterval, Button = "on" 
 };
 
 export default ClickTrackerWrapper;
-
